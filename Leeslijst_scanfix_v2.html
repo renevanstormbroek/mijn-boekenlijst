@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mijn boekenlijst</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#20242a;background:#f5f6f8}
+*{box-sizing:border-box}body{margin:0;padding:18px;max-width:980px;margin-inline:auto}
+header{padding:20px 4px 12px}h1{margin:0 0 6px;font-size:clamp(1.7rem,5vw,2.3rem)}p{color:#5b6470;margin-top:0}
+.panel{background:#fff;border:1px solid #e2e5e9;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 2px 8px #00000008}
+form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+label{display:flex;flex-direction:column;gap:5px;font-size:.9rem;font-weight:600}
+input,select,textarea,button{font:inherit;border-radius:10px;border:1px solid #cbd1d8;padding:10px;background:white;min-width:0}
+.full{grid-column:1/-1}button{cursor:pointer;font-weight:650}.primary{background:#263d54;color:white;border-color:#263d54}.danger{color:#9d2020}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stat{background:#f1f4f7;border-radius:12px;padding:12px}.stat strong{display:block;font-size:1.5rem}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap}.toolbar input{flex:1;min-width:180px}
+.book{display:flex;gap:14px;align-items:flex-start;border-top:1px solid #e6e8eb;padding:14px 0}.book:first-child{border-top:0}
+.cover{width:66px;height:88px;flex:0 0 66px;border-radius:6px;background:#e8edf2;display:flex;align-items:center;justify-content:center;font-size:1.7rem;overflow:hidden}
+.cover img{width:100%;height:100%;object-fit:cover}.bookmain{flex:1;min-width:0}.book h3{margin:0 0 4px;overflow-wrap:anywhere}.meta{font-size:.9rem;color:#5b6470;margin:3px 0}.pill{display:inline-block;background:#edf2f6;border-radius:999px;padding:3px 9px;font-size:.78rem;margin-top:4px}
+.bookbuttons{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}.bookbuttons button{font-size:.85rem;padding:7px 9px}
+.empty{color:#66717e;text-align:center;padding:24px 8px}.small{font-size:.82rem;color:#66717e}
+@media(max-width:560px){body{padding:12px}form{grid-template-columns:1fr}.full{grid-column:auto}.stats{gap:6px}.stat{padding:10px}.book{gap:10px}.cover{width:54px;height:76px;flex-basis:54px}.bookbuttons button{padding:7px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>📚 Mijn boekenlijst</h1>
+  <p>Bewaar welke boeken je hebt gelezen, nog wilt lezen of momenteel leest.</p>
+</header>
+<section class="panel">
+  <h2>🔎 Zoek boek</h2>
+  <p>Maak een foto van de kaft of scan de ISBN-streepjescode. Controleer het gevonden boek en druk daarna op <b>Toevoegen</b>.</p>
+  <div class="actions">
+    <label style="display:inline-flex;justify-content:center;border:1px solid #cbd1d8;border-radius:10px;padding:10px;cursor:pointer">📷 Foto van kaft<input id="coverScan" type="file" accept="image/*" capture="environment" hidden></label>
+    <label style="display:inline-flex;justify-content:center;border:1px solid #cbd1d8;border-radius:10px;padding:10px;cursor:pointer">▥ Foto van barcode<input id="barcodeScan" type="file" accept="image/*" capture="environment" hidden></label>
+  </div>
+  <div class="toolbar" style="margin-top:12px"><input id="isbnLookup" inputmode="numeric" placeholder="Of voer ISBN/barcode in"><button id="lookupBtn" class="primary" type="button">Zoek boek</button></div>
+  <div id="scanStatus" class="small" role="status" style="margin-top:10px"></div>
+  <div id="searchResult" hidden style="margin-top:12px;padding:12px;border:1px solid #d9e0e7;border-radius:12px"></div>
+</section>
+<section class="panel">
+  <h2>Boekgegevens</h2>
+  <form id="bookForm">
+    <label>Titel *<input id="title" required maxlength="180" placeholder="Bijv. De donkere kamer van Damokles"></label>
+    <label>Auteur<input id="author" maxlength="120" placeholder="Naam van de schrijver"></label>
+    <label>Status<select id="status"><option>Wil ik lezen</option><option>Bezig met lezen</option><option>Gelezen</option></select></label>
+    <label>Datum foto / gelezen<input id="dateRead" type="date"></label>
+    <label>Beoordeling<select id="rating"><option value="">Geen beoordeling</option><option value="1">★☆☆☆☆</option><option value="2">★★☆☆☆</option><option value="3">★★★☆☆</option><option value="4">★★★★☆</option><option value="5">★★★★★</option></select></label>
+    <label>Kaftfoto (optioneel)<input id="cover" type="file" accept="image/*"></label>
+    <label class="full">Notities (optioneel)<textarea id="notes" rows="2" maxlength="1000" placeholder="Wat vond je ervan?"></textarea></label>
+    <div class="full actions"><button class="primary" type="submit">Boek opslaan</button><button type="reset" id="resetBtn">Velden wissen</button></div>
+  </form>
+</section>
+<section class="panel">
+  <h2>Mijn overzicht</h2>
+  <div class="stats">
+    <div class="stat"><strong id="readCount">0</strong><span>Gelezen</span></div>
+    <div class="stat"><strong id="progressCount">0</strong><span>Bezig</span></div>
+    <div class="stat"><strong id="wantCount">0</strong><span>Wil ik lezen</span></div>
+  </div>
+</section>
+<section class="panel">
+  <div class="toolbar">
+    <input id="search" placeholder="Zoek op titel of auteur…">
+    <select id="filter" aria-label="Filter op status"><option value="">Alle statussen</option><option>Wil ik lezen</option><option>Bezig met lezen</option><option>Gelezen</option></select>
+    <select id="sort" aria-label="Sorteren"><option value="new">Nieuwste toegevoegd</option><option value="title">Titel A–Z</option><option value="author">Auteur A–Z</option></select>
+  </div>
+  <div id="bookList"></div>
+  <div class="actions">
+    <button id="exportBtn">Back-up downloaden</button>
+    <label style="display:inline-flex;justify-content:center;border:1px solid #cbd1d8;border-radius:10px;padding:10px;cursor:pointer">Back-up terugzetten<input id="importFile" type="file" accept="application/json,.json" hidden></label>
+  </div>
+  <p class="small">Je boeken worden lokaal in deze browser opgeslagen. Gebruik ‘Back-up downloaden’ om je lijst veilig te bewaren of naar een ander apparaat over te zetten.</p>
+</section>
+<script>
+const KEY='mijnBoekenlijst_v1';
+let books=[];
+let pendingCover = "";
+let pendingIsbn = "";
+let pendingBook = null;
+const todayLocal=()=>{const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');};
+let scanDate = todayLocal();
+try { books=JSON.parse(localStorage.getItem(KEY)||'[]'); if(!Array.isArray(books)) books=[]; } catch(e){books=[];}
+const $=id=>document.getElementById(id);
+const save=()=>localStorage.setItem(KEY,JSON.stringify(books));
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const statusClass=s=>s==='Gelezen'?'Gelezen':s;
+function showSearchResult(book){
+  pendingBook=book;
+  const panel=$('searchResult');
+  if(!book){panel.hidden=true;panel.innerHTML='';return;}
+  panel.hidden=false;
+  panel.innerHTML=`<div style="display:flex;gap:12px;align-items:flex-start">${book.cover?`<img src="${esc(book.cover)}" alt="Boekomslag" style="width:74px;max-height:110px;object-fit:contain;border-radius:5px">`:''}<div style="flex:1"><strong>${esc(book.title||'Titel niet gevonden')}</strong><div class="meta">${esc(book.author||'Auteur onbekend')}</div>${book.isbn?`<div class="meta">ISBN: ${esc(book.isbn)}</div>`:''}<div class="small">Datum foto: ${esc(scanDate)}</div></div></div><div class="actions"><button class="primary" id="addFoundBook" type="button">＋ Toevoegen</button><button id="editFoundBook" type="button">Gegevens aanpassen</button></div>`;
+  $('addFoundBook').addEventListener('click',()=>addPendingBook());
+  $('editFoundBook').addEventListener('click',()=>{ $('title').value=book.title||''; $('author').value=book.author||''; $('dateRead').value=scanDate; $('status').value='Gelezen'; $('scanStatus').textContent='Pas eventueel de gegevens hieronder aan en sla het boek op.'; document.getElementById('bookForm').scrollIntoView({behavior:'smooth',block:'start'}); });
+}
+function addPendingBook(){
+  if(!pendingBook||!pendingBook.title){$('scanStatus').textContent='Geen boekgegevens gevonden. Probeer opnieuw of vul de titel in.';return;}
+  const b={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),title:pendingBook.title,author:pendingBook.author||'',status:$('status').value||'Gelezen',dateRead:$('dateRead').value||scanDate,rating:$('rating').value,notes:$('notes').value.trim(),cover:pendingBook.cover||pendingCover||'',isbn:pendingBook.isbn||pendingIsbn||'',created:Date.now()};
+  if(b.status==='Gelezen'&&!b.dateRead)b.dateRead=scanDate;
+  books.unshift(b);try{save();}catch(e){books.shift();alert('Opslaan lukte niet. Probeer een kleinere kaftfoto.');return;}
+  pendingBook=null;pendingCover='';pendingIsbn='';showSearchResult(null);$('scanStatus').textContent='Boek toegevoegd aan je boekenlijst.';render();
+}
+function render(){
+  $('readCount').textContent=books.filter(b=>b.status==='Gelezen').length;
+  $('progressCount').textContent=books.filter(b=>b.status==='Bezig met lezen').length;
+  $('wantCount').textContent=books.filter(b=>b.status==='Wil ik lezen').length;
+  const q=$('search').value.trim().toLowerCase(), f=$('filter').value, sort=$('sort').value;
+  let shown=books.filter(b=>(!f||b.status===f)&&(!q||(b.title+' '+b.author).toLowerCase().includes(q)));
+  shown.sort((a,b)=>sort==='title'?a.title.localeCompare(b.title,'nl'):sort==='author'?(a.author||'').localeCompare(b.author||'','nl'):b.created-a.created);
+  const list=$('bookList');
+  if(!shown.length){list.innerHTML='<div class="empty">Nog geen boeken gevonden. Voeg hierboven je eerste boek toe.</div>';return;}
+  list.innerHTML=shown.map(b=>`<article class="book">
+    <div class="cover">${b.cover?`<img src="${b.cover}" alt="Kaft van ${esc(b.title)}">`:'📖'}</div>
+    <div class="bookmain"><h3>${esc(b.title)}</h3>
+      ${b.author?`<div class="meta">${esc(b.author)}</div>`:''}
+      ${b.isbn?`<div class="meta">ISBN: ${esc(b.isbn)}</div>`:''}
+      <span class="pill">${esc(b.status)}</span>
+      ${b.dateRead?`<div class="meta">Gelezen op: ${esc(b.dateRead)}</div>`:''}
+      ${b.rating?`<div class="meta" aria-label="Beoordeling">${'★'.repeat(Number(b.rating))}${'☆'.repeat(5-Number(b.rating))}</div>`:''}
+      ${b.notes?`<div class="meta">${esc(b.notes)}</div>`:''}
+      <div class="bookbuttons">
+        <button data-action="status" data-id="${b.id}">${b.status==='Gelezen'?'Markeer als wil ik lezen':b.status==='Bezig met lezen'?'Markeer als gelezen':'Markeer als gelezen'}</button>
+        <button data-action="edit" data-id="${b.id}">Bewerken</button>
+        <button class="danger" data-action="delete" data-id="${b.id}">Verwijderen</button>
+      </div>
+    </div>
+  </article>`).join('');
+}
+$('bookForm').addEventListener('submit',async e=>{
+ e.preventDefault();
+ const file=$('cover').files[0];
+ let cover=pendingCover;
+ if(file){ if(file.size>2*1024*1024){alert('Kies een kaftfoto kleiner dan 2 MB.');return;} cover=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});}
+ const status=$('status').value;
+ const b={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()+Math.random()),title:$('title').value.trim(),author:$('author').value.trim(),status,dateRead:$('dateRead').value||scanDate,rating:$('rating').value,notes:$('notes').value.trim(),cover,isbn:pendingIsbn,created:Date.now()};
+ if(status==='Gelezen'&&!b.dateRead)b.dateRead=todayLocal();
+ books.unshift(b);
+ try{save();}catch(err){books.shift();alert('Opslaan lukte niet. Misschien is de kaftfoto te groot; probeer een kleinere foto.');return;}
+ e.target.reset();pendingCover='';pendingIsbn='';pendingBook=null;showSearchResult(null);$('scanStatus').textContent='';render();
+});
+$('bookList').addEventListener('click',e=>{
+ const btn=e.target.closest('button[data-action]');if(!btn)return;
+ const b=books.find(x=>x.id===btn.dataset.id);if(!b)return;
+ if(btn.dataset.action==='delete'){if(confirm(`Weet je zeker dat je "${b.title}" wilt verwijderen?`)){books=books.filter(x=>x.id!==b.id);save();render();}}
+ if(btn.dataset.action==='status'){b.status=b.status==='Gelezen'?'Wil ik lezen':'Gelezen';if(b.status==='Gelezen'&&!b.dateRead)b.dateRead=todayLocal();save();render();}
+ if(btn.dataset.action==='edit'){
+   $('title').value=b.title;$('author').value=b.author;$('status').value=b.status;$('dateRead').value=b.dateRead;$('rating').value=b.rating;$('notes').value=b.notes;
+   if(confirm('De gegevens staan nu in het formulier. Sla het aangepaste boek op als nieuw boek; verwijder daarna eventueel de oude versie.')) window.scrollTo({top:0,behavior:'smooth'});
+ }
+});
+['search','filter','sort'].forEach(id=>$(id).addEventListener('input',render));
+$('exportBtn').addEventListener('click',()=>{
+ const blob=new Blob([JSON.stringify(books,null,2)],{type:'application/json'}),url=URL.createObjectURL(blob),a=document.createElement('a');
+ a.href=url;a.download='mijn-boekenlijst-backup.json';a.click();URL.revokeObjectURL(url);
+});
+$('importFile').addEventListener('change',async e=>{
+ const file=e.target.files[0];if(!file)return;
+ try{const incoming=JSON.parse(await file.text());if(!Array.isArray(incoming)||!incoming.every(b=>b&&b.title&&b.id))throw Error();
+ if(confirm('De huidige lijst wordt vervangen door de back-up. Doorgaan?')){books=incoming;save();render();alert('Back-up teruggezet.');}
+ }catch(err){alert('Dit bestand lijkt geen geldige boekenlijst-back-up.');}e.target.value='';
+});
+function googleBooksJsonp(url){
+  return new Promise((resolve,reject)=>{
+    const callbackName='booksJsonp_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+    const script=document.createElement('script');
+    let finished=false;
+    const cleanup=()=>{if(finished)return;finished=true;try{delete window[callbackName];}catch(e){window[callbackName]=undefined;}if(script.parentNode)script.parentNode.removeChild(script);clearTimeout(timer);};
+    const timer=setTimeout(()=>{cleanup();reject(new Error('Google Books zoekactie duurde te lang'));},12000);
+    window[callbackName]=(data)=>{cleanup();resolve(data);};
+    script.onerror=()=>{cleanup();reject(new Error('Google Books kon niet worden geladen'));};
+    script.src=url+(url.includes('?')?'&':'?')+'callback='+callbackName;
+    document.head.appendChild(script);
+  });
+}
+function openLibraryJsonp(url){
+  return new Promise((resolve,reject)=>{
+    const callbackName='openLibraryJsonp_'+Date.now()+'_'+Math.floor(Math.random()*100000);
+    const script=document.createElement('script');
+    let finished=false;
+    const cleanup=()=>{if(finished)return;finished=true;try{delete window[callbackName];}catch(e){window[callbackName]=undefined;}if(script.parentNode)script.parentNode.removeChild(script);clearTimeout(timer);};
+    const timer=setTimeout(()=>{cleanup();reject(new Error('Open Library zoekactie duurde te lang'));},12000);
+    window[callbackName]=(data)=>{cleanup();resolve(data);};
+    script.onerror=()=>{cleanup();reject(new Error('Open Library kon niet worden geladen'));};
+    script.src=url+(url.includes('?')?'&':'?')+'callback='+callbackName;
+    document.head.appendChild(script);
+  });
+}
+function parseGoogleBooks(data,q,isIsbn){
+  const item=data&&data.items&&data.items[0];
+  if(!item)return null;
+  const info=item.volumeInfo||{};
+  let cover=(info.imageLinks&&(info.imageLinks.thumbnail||info.imageLinks.smallThumbnail)||'').replace('http://','https://');
+  const ids=info.industryIdentifiers||[];
+  const found=ids.find(x=>x.type==='ISBN_13')||ids.find(x=>x.type==='ISBN_10');
+  return {title:info.title||q,author:(info.authors||[]).join(', '),isbn:found?found.identifier:(isIsbn?q.replace(/[\s-]/g,''):''),cover:cover||pendingCover||''};
+}
+async function lookupBook(query){
+  const q=String(query||'').trim(); if(!q){$('scanStatus').textContent='Vul een ISBN in of maak eerst een scan.';return;}
+  $('scanStatus').textContent='Boekgegevens zoeken…';
+  const clean=q.replace(/[\s-]/g,'');
+  const isIsbn=/^(?:97[89])?\d{9,13}$/.test(clean);
+  let resultBook=null, anySourceAnswered=false, lastError=null;
+  const googleUrl='https://www.googleapis.com/books/v1/volumes?q='+(isIsbn?'isbn:'+encodeURIComponent(clean):encodeURIComponent(q))+'&maxResults=5';
+  try{
+    const response=await fetch(googleUrl,{mode:'cors'}); if(!response.ok)throw Error('Google Books HTTP '+response.status);
+    resultBook=parseGoogleBooks(await response.json(),q,isIsbn); anySourceAnswered=true;
+  }catch(err){
+    lastError=err;
+    try{const data=await googleBooksJsonp(googleUrl);resultBook=parseGoogleBooks(data,q,isIsbn);anySourceAnswered=true;}catch(jsonpErr){lastError=jsonpErr;}
+  }
+  if(!resultBook){
+    const url='https://openlibrary.org/search.json?'+(isIsbn?'isbn='+encodeURIComponent(clean):'q='+encodeURIComponent(q))+'&limit=5';
+    try{
+      const response=await fetch(url,{mode:'cors'}); if(!response.ok)throw Error('Open Library HTTP '+response.status);
+      const data=await response.json(); anySourceAnswered=true; const item=data.docs&&data.docs[0];
+      if(item){const ids=item.isbn||[];resultBook={title:item.title||q,author:(item.author_name||[]).slice(0,3).join(', '),isbn:isIsbn?clean:(ids[0]||''),cover:item.cover_i?'https://covers.openlibrary.org/b/id/'+item.cover_i+'-M.jpg':(pendingCover||'')};}
+    }catch(err){
+      lastError=err;
+      try{
+        const data=await openLibraryJsonp(url); anySourceAnswered=true; const item=data.docs&&data.docs[0];
+        if(item){const ids=item.isbn||[];resultBook={title:item.title||q,author:(item.author_name||[]).slice(0,3).join(', '),isbn:isIsbn?clean:(ids[0]||''),cover:item.cover_i?'https://covers.openlibrary.org/b/id/'+item.cover_i+'-M.jpg':(pendingCover||'')};}
+      }catch(jsonpErr){lastError=jsonpErr;}
+    }
+  }
+  if(!resultBook){
+    showSearchResult(null);
+    $('scanStatus').textContent=anySourceAnswered?'Geen boek gevonden bij de online boekendatabases. Controleer het ISBN of vul de titel en auteur hieronder handmatig in.':'De online boekendatabases zijn niet bereikbaar vanuit deze browser. Je kunt het boek wel handmatig invullen.';
+    return;
+  }
+  pendingIsbn=resultBook.isbn||''; pendingBook=resultBook;
+  $('title').value=resultBook.title;$('author').value=resultBook.author||'';$('dateRead').value=scanDate;
+  if(resultBook.cover)pendingCover=resultBook.cover;
+  $('scanStatus').textContent='Controleer of dit het juiste boek is.';
+  showSearchResult(resultBook);
+}
+$('lookupBtn').addEventListener('click',()=>lookupBook($('isbnLookup').value));
+$('isbnLookup').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();lookupBook($('isbnLookup').value);}});
+async function processScan(file,kind){
+ if(!file)return; scanDate=todayLocal(); $('dateRead').value=scanDate; showSearchResult(null); $('scanStatus').textContent='Foto verwerken…';
+ try{
+  const bitmap=await createImageBitmap(file);
+  let barcode='';
+  if('BarcodeDetector' in window){
+    try{const detector=new BarcodeDetector({formats:['ean_13','ean_8','upc_a','upc_e','code_128']});const codes=await detector.detect(bitmap);if(codes.length)barcode=codes[0].rawValue;}catch(e){}
+  }
+  if(barcode){$('isbnLookup').value=barcode;await lookupBook(barcode);return;}
+  if(kind==='barcode'){
+    $('scanStatus').textContent='Barcode niet automatisch herkend. Probeer meer licht en houd de barcode recht, of voer het ISBN handmatig in.';
+    return;
+  }
+  pendingCover=await new Promise((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(r.result);r.onerror=reject;r.readAsDataURL(file);});
+  $('scanStatus').textContent='Kaftfoto toegevoegd. Titel herkennen…';
+  try{
+    if(!window.Tesseract){await new Promise((resolve,reject)=>{const sc=document.createElement('script');sc.src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';sc.onload=resolve;sc.onerror=reject;document.head.appendChild(sc);});}
+    const result=await Tesseract.recognize(file,'eng');
+    const words=(result.data.text||'').split('\n').map(x=>x.trim()).filter(x=>x.length>2).slice(0,5).join(' ');
+    if(words){await lookupBook(words);if(!pendingBook){$('title').value=words;pendingBook={title:words,author:'',isbn:'',cover:pendingCover};showSearchResult(pendingBook);$('scanStatus').textContent='Geen online match, maar je kunt de herkende titel controleren en toevoegen.';}}
+    else {$('scanStatus').textContent='Kaftfoto bewaard. Tekst werd niet goed herkend; vul de titel en auteur handmatig in.'; pendingBook={title:$('title').value,author:'',isbn:'',cover:pendingCover};}
+  }catch(e){$('scanStatus').textContent='Kaftfoto toegevoegd. Automatische tekstherkenning lukte niet; vul de titel en auteur handmatig in.';}
+ }catch(e){$('scanStatus').textContent='Deze foto kon niet worden verwerkt. Probeer een andere foto.';}
+}
+$('coverScan').addEventListener('change',e=>{processScan(e.target.files[0],'cover');e.target.value='';});
+$('barcodeScan').addEventListener('change',e=>{processScan(e.target.files[0],'barcode');e.target.value='';});
+
+render();
+</script>
+</body>
+</html>
